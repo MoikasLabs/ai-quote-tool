@@ -1,0 +1,13 @@
+{
+  "name": "ai-quote-tool",
+  "version": "0.1.0",
+  "description": "AI-powered 3D printing quote calculator with IP-based rate limiting",
+  "scripts": {
+    "dev": "bun run server.ts",
+    "start": "bun run server.ts"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "bun-types": "latest"
+  }
+}

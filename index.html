@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moikas 3D Print Quote Calculator</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 600px;
+      width: 100%;
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 24px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    
+    .header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+    
+    .rate-limit-info {
+      background: #f3f4f6;
+      padding: 12px 24px;
+      font-size: 12px;
+      color: #6b7280;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .chat-container {
+      height: 400px;
+      overflow-y: auto;
+      padding: 24px;
+      background: #f9fafb;
+    }
+    
+    .message {
+      margin-bottom: 16px;
+      display: flex;
+      gap: 12px;
+    }
+    
+    .message.user {
+      flex-direction: row-reverse;
+    }
+    
+    .message-bubble {
+      max-width: 70%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      line-height: 1.5;
+    }
+    
+    .message.assistant .message-bubble {
+      background: white;
+      border: 1px solid #e5e7eb;
+    }
+    
+    .message.user .message-bubble {
+      background: #667eea;
+      color: white;
+    }
+    
+    .message-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    
+    .message.assistant .message-icon {
+      background: #667eea;
+    }
+    
+    .message.user .message-icon {
+      background: #10b981;
+    }
+    
+    .input-container {
+      padding: 24px;
+      background: white;
+      border-top: 1px solid #e5e7eb;
+    }
+    
+    .input-wrapper {
+      display: flex;
+      gap: 12px;
+    }
+    
+    input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    button {
+      padding: 12px 24px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    button:hover:not(:disabled) {
+      background: #5568d3;
+      transform: translateY(-1px);
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .example-questions {
+      padding: 0 24px 24px;
+      background: white;
+    }
+    
+    .example-questions h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #6b7280;
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+    
+    .example-questions button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 8px 12px;
+      background: #f3f4f6;
+      color: #374151;
+      font-size: 13px;
+      margin-bottom: 6px;
+      font-weight: normal;
+    }
+    
+    .example-questions button:hover {
+      background: #e5e7eb;
+      transform: none;
+    }
+    
+    .error {
+      background: #fee;
+      color: #c00;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+    
+    .loading {
+      display: flex;
+      gap: 4px;
+      padding: 12px;
+    }
+    
+    .loading span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #667eea;
+      animation: bounce 1.4s infinite ease-in-out both;
+    }
+    
+    .loading span:nth-child(1) { animation-delay: -0.32s; }
+    .loading span:nth-child(2) { animation-delay: -0.16s; }
+    
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🖨️ 3D Print Quote Calculator</h1>
+      <p>Get instant cost estimates for your 3D printing project</p>
+    </div>
+    
+    <div class="rate-limit-info" id="rateLimitInfo">
+      Conversations used: 0/5 | Messages: 0/20
+    </div>
+    
+    <div class="chat-container" id="chatContainer">
+      <div class="message assistant">
+        <div class="message-icon">🤖</div>
+        <div class="message-bubble">
+          Hi! I can help estimate your 3D printing cost. What would you like to print?
+        </div>
+      </div>
+    </div>
+    
+    <div class="example-questions">
+      <h3>Example Questions:</h3>
+      <button onclick="sendExample('How much to print a phone stand?')">How much to print a phone stand?</button>
+      <button onclick="sendExample('Can you print a 6-inch dragon figurine?')">Can you print a 6-inch dragon figurine?</button>
+      <button onclick="sendExample('What\\'s the difference between PLA and PETG?')">What's the difference between PLA and PETG?</button>
+    </div>
+    
+    <div class="input-container">
+      <div class="input-wrapper">
+        <input 
+          type="text" 
+          id="userInput" 
+          placeholder="Ask about printing costs..."
+          onkeypress="handleKeyPress(event)"
+        />
+        <button onclick="sendMessage()" id="sendBtn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3002'
+    let messages = []
+    let isNewConvo = true
+    
+    async function updateRateLimitInfo() {
+      try {
+        const res = await fetch(`${API_URL}/rate-limit-status`)
+        const data = await res.json()
+        document.getElementById('rateLimitInfo').textContent = 
+          `Conversations used: ${data.conversationsUsed}/${data.conversationsLimit} | Messages: ${data.messagesInCurrentConvo}/${data.messagesLimit}`
+      } catch (err) {
+        console.error('Rate limit check failed:', err)
+      }
+    }
+    
+    function addMessage(role, content) {
+      const chatContainer = document.getElementById('chatContainer')
+      const messageDiv = document.createElement('div')
+      messageDiv.className = `message ${role}`
+      
+      const icon = role === 'user' ? '👤' : '🤖'
+      
+      messageDiv.innerHTML = `
+        <div class="message-icon">${icon}</div>
+        <div class="message-bubble">${content}</div>
+      `
+      
+      chatContainer.appendChild(messageDiv)
+      chatContainer.scrollTop = chatContainer.scrollHeight
+    }
+    
+    function showLoading() {
+      const chatContainer = document.getElementById('chatContainer')
+      const loadingDiv = document.createElement('div')
+      loadingDiv.id = 'loading'
+      loadingDiv.className = 'message assistant'
+      loadingDiv.innerHTML = `
+        <div class="message-icon">🤖</div>
+        <div class="loading">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      `
+      chatContainer.appendChild(loadingDiv)
+      chatContainer.scrollTop = chatContainer.scrollHeight
+    }
+    
+    function removeLoading() {
+      const loading = document.getElementById('loading')
+      if (loading) loading.remove()
+    }
+    
+    function showError(message) {
+      const chatContainer = document.getElementById('chatContainer')
+      const errorDiv = document.createElement('div')
+      errorDiv.className = 'error'
+      errorDiv.textContent = message
+      chatContainer.appendChild(errorDiv)
+      chatContainer.scrollTop = chatContainer.scrollHeight
+    }
+    
+    async function sendMessage() {
+      const input = document.getElementById('userInput')
+      const message = input.value.trim()
+      
+      if (!message) return
+      
+      // Add user message to UI
+      addMessage('user', message)
+      messages.push({ role: 'user', content: message })
+      
+      // Clear input
+      input.value = ''
+      
+      // Disable input while processing
+      const sendBtn = document.getElementById('sendBtn')
+      sendBtn.disabled = true
+      input.disabled = true
+      
+      // Show loading
+      showLoading()
+      
+      try {
+        const res = await fetch(`${API_URL}/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages,
+            isNewConvo
+          })
+        })
+        
+        removeLoading()
+        
+        if (res.status === 429) {
+          const data = await res.json()
+          showError(data.error)
+          return
+        }
+        
+        const data = await res.json()
+        
+        if (data.error) {
+          showError(data.error)
+          return
+        }
+        
+        // Add AI response
+        addMessage('assistant', data.message)
+        messages.push({ role: 'assistant', content: data.message })
+        
+        // No longer a new conversation
+        isNewConvo = false
+        
+        // Update rate limit info
+        await updateRateLimitInfo()
+        
+      } catch (err) {
+        removeLoading()
+        showError('Failed to get response. Please try again.')
+        console.error('Chat error:', err)
+      } finally {
+        sendBtn.disabled = false
+        input.disabled = false
+        input.focus()
+      }
+    }
+    
+    function sendExample(text) {
+      document.getElementById('userInput').value = text
+      sendMessage()
+    }
+    
+    function handleKeyPress(event) {
+      if (event.key === 'Enter') {
+        sendMessage()
+      }
+    }
+    
+    // Initial rate limit check
+    updateRateLimitInfo()
+  </script>
+</body>
+</html>
