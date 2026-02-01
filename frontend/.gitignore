@@ -33,6 +33,9 @@ yarn-error.log*
 .env*.local
 .env
 
+# data storage (conversations, quotes, rate limits)
+/data
+
 # vercel
 .vercel
 

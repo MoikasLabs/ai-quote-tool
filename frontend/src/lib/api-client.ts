@@ -1,5 +1,5 @@
 /**
- * API Client for communicating with the backend
+ * API Client for communicating with Next.js API routes
  */
 
 import type {
@@ -9,13 +9,11 @@ import type {
   RateLimitStatus,
 } from '@/types'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'
-
 /**
  * Start a new quote conversation
  */
 export async function startQuote(): Promise<QuoteStartResponse> {
-  const response = await fetch(`${API_URL}/api/quote/start`, {
+  const response = await fetch('/api/quote/start', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -38,7 +36,7 @@ export async function sendMessage(
   conversationId: string,
   message: string
 ): Promise<QuoteMessageResponse> {
-  const response = await fetch(`${API_URL}/api/quote/message`, {
+  const response = await fetch('/api/quote/message', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -62,7 +60,7 @@ export async function sendMessage(
  * Get current rate limit status
  */
 export async function getRateLimitStatus(): Promise<RateLimitStatus> {
-  const response = await fetch(`${API_URL}/api/rate-limit-status`, {
+  const response = await fetch('/api/rate-limit-status', {
     headers: {
       'Content-Type': 'application/json',
     },
