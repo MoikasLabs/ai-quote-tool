@@ -57,7 +57,7 @@ cp .env.example .env
 # OPENCLAW_API_KEY=your_key_here
 ```
 
-### Running the Server
+### Running the Backend API
 
 ```bash
 # Development mode (with auto-reload)
@@ -69,16 +69,37 @@ bun run start
 # Server runs on http://localhost:3002
 ```
 
-### Testing the Frontend
-
-Open `index.html` in your browser or serve it:
+### Running the Next.js Frontend (Recommended)
 
 ```bash
-# Option 1: Simple HTTP server
-python3 -m http.server 8000
+# Navigate to frontend directory
+cd frontend
 
-# Option 2: Bun
-bun --hot index.html
+# Install dependencies
+bun install
+
+# Run development server
+bun run dev
+
+# Then visit http://localhost:3000
+```
+
+The Next.js frontend provides a modern, production-ready interface with:
+- React 19 + Next.js 15 (App Router)
+- TypeScript for type safety
+- Tailwind CSS for styling
+- Real-time chat interface
+- Mobile responsive design
+
+See `frontend/README.md` for detailed documentation.
+
+### Alternative: Simple HTML Frontend
+
+For testing or simple deployments, you can use the standalone HTML file:
+
+```bash
+# Serve index.html
+python3 -m http.server 8000
 
 # Then visit http://localhost:8000
 ```
@@ -303,7 +324,7 @@ total = subtotal + rushFee
 
 ```
 ai-quote-tool/
-├── src/
+├── src/                       # Backend API
 │   ├── server.ts              # Main API server
 │   ├── types/
 │   │   └── index.ts           # TypeScript type definitions
@@ -314,11 +335,19 @@ ai-quote-tool/
 │   └── utils/
 │       ├── storage.ts         # JSON file storage
 │       └── helpers.ts         # Utility functions
+├── frontend/                  # Next.js Frontend (Recommended)
+│   ├── src/
+│   │   ├── app/               # Next.js App Router
+│   │   ├── components/        # React components
+│   │   ├── lib/               # API client
+│   │   └── types/             # TypeScript types
+│   ├── package.json
+│   └── README.md              # Frontend documentation
 ├── data/
 │   ├── conversations/         # Stored conversation JSON files
 │   ├── quotes/                # Archived quotes
 │   └── rate-limits.json       # Rate limit tracking
-├── index.html                 # Demo frontend
+├── index.html                 # Simple HTML frontend (alternative)
 ├── package.json
 ├── tsconfig.json
 ├── .env.example
