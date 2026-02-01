@@ -225,7 +225,7 @@
     </div>
     
     <div class="rate-limit-info" id="rateLimitInfo">
-      Conversations used: 0/5 | Messages: 0/20
+      Quotes: 0/50 this month
     </div>
     
     <div class="chat-container" id="chatContainer">
@@ -259,15 +259,23 @@
 
   <script>
     const API_URL = 'http://localhost:3002'
-    let messages = []
-    let isNewConvo = true
-    
+    let conversationId = null
+    let isFirstMessage = true
+
     async function updateRateLimitInfo() {
       try {
-        const res = await fetch(`${API_URL}/rate-limit-status`)
+        const res = await fetch(`${API_URL}/api/rate-limit-status`)
         const data = await res.json()
-        document.getElementById('rateLimitInfo').textContent = 
-          `Conversations used: ${data.conversationsUsed}/${data.conversationsLimit} | Messages: ${data.messagesInCurrentConvo}/${data.messagesLimit}`
+
+        if (data.success && data.data) {
+          const status = data.data
+          const quotesText = `Quotes: ${status.quotesUsed}/${status.quotesLimit}`
+          const messagesText = status.currentConversation
+            ? ` | Messages: ${status.currentConversation.messageCount}/${status.currentConversation.maxMessages}`
+            : ''
+
+          document.getElementById('rateLimitInfo').textContent = quotesText + messagesText
+        }
       } catch (err) {
         console.error('Rate limit check failed:', err)
       }
@@ -323,59 +331,88 @@
     async function sendMessage() {
       const input = document.getElementById('userInput')
       const message = input.value.trim()
-      
+
       if (!message) return
-      
+
       // Add user message to UI
       addMessage('user', message)
-      messages.push({ role: 'user', content: message })
-      
+
       // Clear input
       input.value = ''
-      
+
       // Disable input while processing
       const sendBtn = document.getElementById('sendBtn')
       sendBtn.disabled = true
       input.disabled = true
-      
+
       // Show loading
       showLoading()
-      
+
       try {
-        const res = await fetch(`${API_URL}/chat`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages,
-            isNewConvo
+        let res
+
+        // Start new conversation if needed
+        if (isFirstMessage) {
+          res = await fetch(`${API_URL}/api/quote/start`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
           })
-        })
-        
+
+          const startData = await res.json()
+
+          if (!startData.success) {
+            removeLoading()
+            showError(startData.error || 'Failed to start conversation')
+            sendBtn.disabled = false
+            input.disabled = false
+            return
+          }
+
+          conversationId = startData.data.conversationId
+          isFirstMessage = false
+
+          // Now send the actual message
+          res = await fetch(`${API_URL}/api/quote/message`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              conversationId,
+              message
+            })
+          })
+        } else {
+          // Continue existing conversation
+          res = await fetch(`${API_URL}/api/quote/message`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              conversationId,
+              message
+            })
+          })
+        }
+
         removeLoading()
-        
+
         if (res.status === 429) {
           const data = await res.json()
-          showError(data.error)
+          showError(data.error || 'Rate limit exceeded')
           return
         }
-        
+
         const data = await res.json()
-        
-        if (data.error) {
-          showError(data.error)
+
+        if (!data.success) {
+          showError(data.error || 'Failed to get response')
           return
         }
-        
+
         // Add AI response
-        addMessage('assistant', data.message)
-        messages.push({ role: 'assistant', content: data.message })
-        
-        // No longer a new conversation
-        isNewConvo = false
-        
+        addMessage('assistant', data.data.message)
+
         // Update rate limit info
         await updateRateLimitInfo()
-        
+
       } catch (err) {
         removeLoading()
         showError('Failed to get response. Please try again.')
